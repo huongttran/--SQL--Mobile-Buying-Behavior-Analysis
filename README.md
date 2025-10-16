@@ -1,4 +1,4 @@
-# [SQL] Phân tích hành vi mua điện thoại
+# [SQL] Mobile Buying Behavior Analysis
 ## 📕 Mục lục
 - 📊 [Giới thiệu](#-giới-thiệu)
 - 📂 [Bộ dữ liệu](#-bộ-dữ-liệu)
