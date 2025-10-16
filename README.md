@@ -1,12 +1,12 @@
 # [SQL] Phân tích hành vi mua điện thoại
 ## 📕 Mục lục
-- 🛠️ [Giới thiệu](#-giới-thiệu)
+- 📊 [Giới thiệu](#-giới-thiệu)
 - 📂 [Bộ dữ liệu](#-bộ-dữ-liệu)
-- 🧑‍🏫 [Câu hỏi tình huống](#-câu-hỏi-tình-huống)
+- 🎯 [Câu hỏi tình huống](#-câu-hỏi-tình-huống)
 - 💯 [Giải pháp](#-giải-pháp)
 - 💡 [Nhận xét](#-nhận-xét)
 
-## 🛠️ Giới thiệu
+## 📊 Giới thiệu
 > Khi thị trường điện thoại bùng nổ, nhóm phân tích nhận ra rằng dữ liệu giao dịch ẩn chứa vô số câu chuyện thú vị: ai đang mua, họ mua gì, ở đâu và vì sao lại chọn hình thức trả góp hay mua thêm phụ kiện.
 > 
 > Vì vậy, Hương đã khởi động một project mới – “Phone Data Insight” – nhằm khai phá dữ liệu bán hàng và giúp doanh nghiệp hiểu rõ khách hàng hơn bao giờ hết.
@@ -57,7 +57,7 @@ Bảng dữ liệu ghi lại các giao dịch mà khách hàng mua điện tho�
 </details>
 
   
-## 🧑‍🏫 Câu hỏi tình huống
+## 🎯 Câu hỏi tình huống
 ### A. Phân tích đặc điểm khách hàng
 1. Nhóm tuổi nào mua nhiều nhất, nhóm tuổi nào mang lại doanh thu nhiều nhất?
 2. Nhóm khách hàng 26–30 yêu thích hãng nào?
@@ -72,7 +72,6 @@ Bảng dữ liệu ghi lại các giao dịch mà khách hàng mua điện tho�
 10. Hãng điện thoại được mua trả góp nhiều nhất?
 
 ## 💯 Giải pháp
-
 ### Q1: Nhóm tuổi nào mua nhiều nhất, nhóm tuổi nào mang lại doanh thu nhiều nhất?
 ```sql
 SELECT 
@@ -225,19 +224,20 @@ SELECT
       COUNT(Accessories_name) / COUNT(*) AS ti_le_mua_phu_kien
 FROM raw_data
 GROUP BY 1
-ORDER BY 1;
+ORDER BY 4 DESC, 1;
 ```
 | ProductBrand   | accessories_sale | total | ti_le_mua_phu_kien |
 |----------------|------------------|--------|--------------------|
-| ALCATEL        | 0                | 1      | 0.0                |
 | APPLE IPHONE   | 1318             | 1318   | 1.0                |
 | BLACKBERRY     | 108              | 108    | 1.0                |
+| SAMSUNG        | 34215            | 34215  | 1.0                |
+| ALCATEL        | 0                | 1      | 0.0                |
 | F-MOBILE       | 0                | 13     | 0.0                |
 | HTC            | 0                | 2987   | 0.0                |
 | HUAWEI         | 0                | 24     | 0.0                |
 | LENOVO         | 0                | 5410   | 0.0                |
 | LG             | 0                | 3155   | 0.0                |
-| Mobiistar      | 0                | 8986   | 0.0                |
+
 ### Q6: Nhóm tuổi nào có hành vi mua trả góp nhiều nhất?
 ```sql
 SELECT
@@ -295,8 +295,9 @@ ORDER BY 1;
 | 2015 05 | 19934       |
 
 ### Q9: Top 3 mẫu điện thoại mang lại doanh thu cao nhất của từng tháng? 
-–step 1: tính doanh thu theo từng tháng, từng sp -> aggregate -> sum
-–step 2: xếp hạng dựa trên doanh thu -> window function -> dense/rank
+
+ - step 1: tính doanh thu theo từng tháng, từng sp -> aggregate -> sum
+ - step 2: xếp hạng dựa trên doanh thu -> window function -> dense/rank
 ```sql
 WITH raw_data AS (--lấy doanh thu theo từng tháng, từng sp
   SELECT
