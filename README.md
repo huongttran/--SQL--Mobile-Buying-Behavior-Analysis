@@ -1,5 +1,5 @@
 # [SQL] Phân tích hành vi mua điện thoại
-## 📕 Table Of Contents
+## 📕 Mục lục
 - 🛠️ [Giới thiệu](#-giới-thiệu)
 - 📂 [Bộ dữ liệu](#-bộ-dữ-liệu)
 - 🧑‍🏫 [Câu hỏi tình huống](#-câu-hỏi-tình-huống)
@@ -59,10 +59,10 @@ Bảng dữ liệu ghi lại các giao dịch mà khách hàng mua điện tho�
   
 ## 🧑‍🏫 Câu hỏi tình huống
 ### A. Phân tích đặc điểm khách hàng
-1. Nhóm khách hàng Nam và Nữ thích điện thoại của hãng nào nhất, lấy top 3?
-2. Nhóm tuổi nào mua nhiều nhất, nhóm tuổi nào mang lại doanh thu nhiều nhất?
-3. Nhóm khách hàng 26–30 yêu thích hãng nào?
-4. Nhóm khách hàng 26–30 có sẵn sàng mua phụ kiện & bảo hiểm không?
+1. Nhóm tuổi nào mua nhiều nhất, nhóm tuổi nào mang lại doanh thu nhiều nhất?
+2. Nhóm khách hàng 26–30 yêu thích hãng nào?
+3. Nhóm khách hàng 26–30 có sẵn sàng mua phụ kiện & bảo hiểm không?
+4.  Nhóm khách hàng Nam và Nữ thích điện thoại của hãng nào nhất, lấy top 3?
 5. Nhóm khách hàng của từng hãng có mua phụ kiện & bảo hiểm không?
 6. Nhóm tuổi nào có hành vi mua trả góp nhiều nhất?
 ### B. Phân tích giao dịch khách hàng
@@ -72,7 +72,97 @@ Bảng dữ liệu ghi lại các giao dịch mà khách hàng mua điện tho�
 10. Hãng điện thoại được mua trả góp nhiều nhất?
 
 ## 💯 Giải pháp
-### Q1: Nhóm khách hàng Nam và Nữ thích điện thoại của hãng nào nhất, lấy top 3?
+
+### Q1: Nhóm tuổi nào mua nhiều nhất, nhóm tuổi nào mang lại doanh thu nhiều nhất?
+```sql
+SELECT 
+      YearOldRange,
+      COUNT(TransactionID) AS so_luong,
+      SUM(SalesValue) AS doanh_thu
+FROM `ancient-voltage-472014-q9.1.Phone_Sales` 
+GROUP BY YearOldRange
+ORDER BY doanh_thu DESC,so_luong DESC
+```
+| YearOldRange | so_luong | doanh_thu     |
+|---------------|-----------|---------------|
+| 26-30         | 56309    | 250380794600 |
+| 31-35         | 19621    | 94639260500  |
+| 36-40         | 12361    | 60374518000  |
+| Dưới 21       | 3175     | 14045184500  |
+| Trên 40       | 1911     | 9996030000   |
+| 21-25         | 1929     | 8668643500   |
+### Q2: Nhóm khách hàng 26-30 yêu thích hãng nào? 
+```sql
+WITH raw_data AS (
+  SELECT
+        YearOldRange,
+        ProductBrand,
+        COUNT(TransactionID) AS so_luong
+  FROM `ancient-voltage-472014-q9.1.Phone_Sales`
+  WHERE YearOldRange = '26-30'
+  GROUP BY 1, 2
+  ORDER BY 3 DESC
+)
+
+SELECT
+      YearOldRange,
+      ProductBrand,
+      so_luong,
+  DENSE_RANK() OVER(ORDER BY so_luong DESC) AS rk
+FROM raw_data
+ORDER BY rk;
+```
+| YearOldRange | ProductBrand | so_luong | rk |
+|---------------|---------------|----------|----|
+| 26-30         | SAMSUNG       | 20656    | 1  |
+| 26-30         | Q-SMART       | 9927     | 2  |
+| 26-30         | NOKIA         | 9092     | 3  |
+| 26-30         | Mobiistar     | 5547     | 4  |
+| 26-30         | LENOVO        | 3075     | 5  |
+| 26-30         | SONY          | 2781     | 6  |
+| 26-30         | LG            | 1830     | 7  |
+| 26-30         | HTC           | 1744     | 8  |
+| 26-30         | Q-MOBILE      | 800      | 9  |
+### Q3: Nhóm khách hàng 26-30 có sẵn sàng mua phụ kiện & bảo hiểm không?
+
+```sql
+WITH raw_data AS (
+  SELECT
+        sales.TransactionID,
+        sales.YearOldRange,
+        sales.ProductName,
+        access.Accessories_name,
+        access.Accessories_subname,
+        access.SalesValue
+  FROM `ancient-voltage-472014-q9.1.Phone_Sales`AS sales
+  LEFT JOIN `ancient-voltage-472014-q9.1.Accessories_Sales` AS access
+  USING (TransactionID)
+  ORDER BY 1
+)
+
+-- Sau đó đếm số Accessories_name / total để ra được tỉ lệ khách mua phụ kiện
+SELECT
+      YearOldRange,
+      COUNT(Accessories_name) AS accessories_sale,
+      COUNT(*) AS total,
+      ROUND(COUNT(Accessories_name) / COUNT(*) ,4) AS ti_le_mua_phu_kien
+FROM raw_data
+GROUP BY 1
+ORDER BY 1;
+```
+| YearOldRange | accessories_sale | total | ti_le_mua_phu_kien |
+|---------------|------------------|--------|--------------------|
+| 21-25         | 725              | 1929   | 37.58              |
+| 26-30         | 21491            | 56309  | 38.17              |
+| 31-35         | 7107             | 19621  | 36.22              |
+| 36-40         | 4428             | 12361  | 35.82              |
+| Dưới 21       | 1159             | 3175   | 36.50              |
+| Trên 40       | 731              | 1911   | 38.25              |
+
+### Q4: Nhóm khách hàng Nam và Nữ thích điện thoại của hãng nào nhất, lấy top 3?
+- step1: đếm số lượng bán ra của từng hãng (đếm transactionID) theo giới tính
+- step2: ranking dựa trên so_luong,theo từng giới tính
+
 ```sql
 WITH raw_data AS ( --lấy số lượng bán theo từng giới tính, từng hãng
   SELECT
@@ -111,91 +201,6 @@ ORDER BY 1, 4;
 | NU       | SAMSUNG       | 18320    | 1  |
 | NU       | NOKIA         | 7715     | 2  |
 | NU       | Q-SMART       | 7136     | 3  |
-### Q2: Nhóm tuổi nào mua nhiều nhất, Nhóm tuổi nào mang lại doanh thu nhiều nhất? Từ đó có thể rút ra kết luận gì ?
-```sql
-SELECT 
-      YearOldRange,
-      COUNT(TransactionID) AS so_luong,
-      SUM(SalesValue) AS doanh_thu
-FROM `ancient-voltage-472014-q9.1.Phone_Sales` 
-GROUP BY YearOldRange
-ORDER BY doanh_thu DESC,so_luong DESC
-```
-| YearOldRange | so_luong | doanh_thu     |
-|---------------|-----------|---------------|
-| 26-30         | 56309    | 250380794600 |
-| 31-35         | 19621    | 94639260500  |
-| 36-40         | 12361    | 60374518000  |
-| Dưới 21       | 3175     | 14045184500  |
-| Trên 40       | 1911     | 9996030000   |
-| 21-25         | 1929     | 8668643500   |
-### Q3: Nhóm khách hàng 26-30 yêu thích hãng nào? 
-```sql
-WITH raw_data AS (
-  SELECT
-        YearOldRange,
-        ProductBrand,
-        COUNT(TransactionID) AS so_luong
-  FROM `ancient-voltage-472014-q9.1.Phone_Sales`
-  WHERE YearOldRange = '26-30'
-  GROUP BY 1, 2
-  ORDER BY 3 DESC
-)
-
-SELECT
-      YearOldRange,
-      ProductBrand,
-      so_luong,
-  DENSE_RANK() OVER(ORDER BY so_luong DESC) AS rk
-FROM raw_data
-ORDER BY rk;
-```
-| YearOldRange | ProductBrand | so_luong | rk |
-|---------------|---------------|----------|----|
-| 26-30         | SAMSUNG       | 20656    | 1  |
-| 26-30         | Q-SMART       | 9927     | 2  |
-| 26-30         | NOKIA         | 9092     | 3  |
-| 26-30         | Mobiistar     | 5547     | 4  |
-| 26-30         | LENOVO        | 3075     | 5  |
-| 26-30         | SONY          | 2781     | 6  |
-| 26-30         | LG            | 1830     | 7  |
-| 26-30         | HTC           | 1744     | 8  |
-| 26-30         | Q-MOBILE      | 800      | 9  |
-### Q4: Nhóm khách hàng 26-30 có sẵn sàng mua phụ kiện & bảo hiểm không?
-```sql
-WITH raw_data AS (
-  SELECT
-        sales.TransactionID,
-        sales.YearOldRange,
-        sales.ProductName,
-        access.Accessories_name,
-        access.Accessories_subname,
-        access.SalesValue
-  FROM `ancient-voltage-472014-q9.1.Phone_Sales`AS sales
-  LEFT JOIN `ancient-voltage-472014-q9.1.Accessories_Sales` AS access
-  USING (TransactionID)
-  ORDER BY 1
-)
-
--- Sau đó đếm số Accessories_name / total để ra được tỉ lệ khách mua phụ kiện
-SELECT
-      YearOldRange,
-      COUNT(Accessories_name) AS accessories_sale,
-      COUNT(*) AS total,
-      ROUND(COUNT(Accessories_name) / COUNT(*) ,4) AS ti_le_mua_phu_kien
-FROM raw_data
-GROUP BY 1
-ORDER BY 1;
-```
-| YearOldRange | accessories_sale | total | ti_le_mua_phu_kien |
-|---------------|------------------|--------|--------------------|
-| 21-25         | 725              | 1929   | 37.58              |
-| 26-30         | 21491            | 56309  | 38.17              |
-| 31-35         | 7107             | 19621  | 36.22              |
-| 36-40         | 4428             | 12361  | 35.82              |
-| Dưới 21       | 1159             | 3175   | 36.50              |
-| Trên 40       | 731              | 1911   | 38.25              |
-
 ### Q5: Nhóm khách hàng của từng hãng có mua phụ kiện & bảo hiểm không?
 ```sql
 WITH raw_data AS (
@@ -290,8 +295,10 @@ ORDER BY 1;
 | 2015 05 | 19934       |
 
 ### Q9: Top 3 mẫu điện thoại mang lại doanh thu cao nhất của từng tháng? 
+–step 1: tính doanh thu theo từng tháng, từng sp -> aggregate -> sum
+–step 2: xếp hạng dựa trên doanh thu -> window function -> dense/rank
 ```sql
-WITH raw_data AS (
+WITH raw_data AS (--lấy doanh thu theo từng tháng, từng sp
   SELECT
         FORMAT_DATE('%Y %m', PARSE_DATE('%Y %m %d', DatePurchase)) AS month,
         ProductName,
@@ -352,5 +359,72 @@ ORDER BY 4 DESC;
 | Q-SMART        | 464      | 15531         | 0.0299         |
 
 ## 💡 Nhận xét
+
+### ❓Q1: Nhóm tuổi nào mua nhiều sản phẩm nhất, nhóm tuổi nào mang lại doanh thu nhiều nhất?
+Nhóm **`26–30 tuổi`** ghi nhận số lượng **đơn hàng cao nhất** (56.309 đơn) và cũng mang lại **doanh thu lớn nhất** (≈250,38 tỷ).
+
+➡️ **Nhóm `26–30 tuổi` là nhóm khách hàng tiềm năng.**
+
+---
+
+### ❓Q2: Nhóm khách hàng 26–30 yêu thích hãng nào?
+Nhóm khách hàng **`26–30 tuổi`**, **`Samsung`** có số lượng đơn hàng **cao nhất** (20.656 đơn), xếp **thứ hai** là  **`Q-Smart`** (9.927 đơn) và **thứ ba** là **`Nokia`** (9.092 đơn).
+
+➡️ **`Samsung` là thương hiệu được nhóm `26–30 tuổi` lựa chọn nhiều nhất.**
+
+---
+
+### ❓Q3: Nhóm khách hàng 26–30 có sẵn sàng mua phụ kiện & bảo hiểm không?
+Nhóm **`trên 40 tuổi`** có tỷ lệ mua phụ kiện **cao nhất** (38,25%), xếp **thứ hai** là nhóm **`26–30 tuổi`** với (38,17%). Các nhóm tuổi còn lại có tỷ lệ thấp hơn dao động quanh 36–37%.
+
+➡️ **Với độ tuổi dưới 40, nhóm `26-30 tuổi` sẵn sàng mua thêm phụ kiện cao nhất so với các nhóm còn lại.**
+
+---
+### ❓Q4: Nhóm khách hàng Nam và Nữ thích điện thoại của hãng nào nhất, lấy top 3?
+Dựa trên số lượng đơn hàng, **nữ giới** có tổng lượng giao dịch **cao hơn nam giới** ở tất cả các thương hiệu, trong đó **`Samsung`** là hãng có số lượng đơn hàng **cao nhất** ở cả hai nhóm giới tính (Nam: 15.895 đơn hàng; Nữ: 18.320 đơn hàng). Trong khi **`Nokia`** và **`Q-Smart`** lần lượt xếp thứ hai và ba ở cả hai nhóm.
+
+➡️ **`Samsung` lựa chọn ưu thích của khách hàng của cả hai giới tính.**
+
+---
+### ❓Q5: Nhóm khách hàng của từng hãng có mua phụ kiện & bảo hiểm không?
+Các hãng **`Apple`, `BlackBerry` và `Samsung`** có phát sinh giao dịch **mua thêm** phụ kiện hoặc bảo hành với **tỷ lệ 100%** số đơn hàng đi kèm sản phẩm bổ sung. Các thương hiệu còn lại không ghi nhận giao dịch phụ kiện trong tập dữ liệu.
+
+➡️ **`Apple`, `BlackBerry` và `Samsung` là doanh thu không chỉ đến từ thiết bị mà còn mở rộng sang dịch vụ và bảo hành, góp phần tăng lợi nhuận dài hạn.**
+
+---
+### ❓Q6: Nhóm tuổi nào có hành vi mua trả góp nhiều nhất?
+Nhóm **`31–35 tuổi`** có tỷ lệ mua trả góp **cao nhất** (7,89%), **thứ hai** là nhóm **`dưới 21 tuổi`** (6,87%) và **thứ ba** là nhóm **`26–30 tuổi`** (6,42%). Các nhóm tuổi còn lại dao động quanh mức 6,1–6,3%.
+
+➡️ **Khách hàng `31–35 tuổi` là nhóm sử dụng hình thức trả góp cao nhất trong tập dữ liệu.**
+
+---
 ### ❓Q7: Có bao nhiêu đơn hàng trong từng tháng?
-Số lượng đơn hàng biến động mạnh theo tháng, tập trung cao điểm vào các giai đoạn cuối năm tháng 11–12 cho thấy nhu cầu mua sắm tăng do mùa lễ hội và các chương trình khuyến mãi lớn. Ngược lại, những tháng đầu năm có lượng đơn hàng thấp hơn, gợi ý doanh nghiệp nên triển khai các chiến dịch kích cầu để duy trì doanh số ổn định quanh năm.
+Số đơn hàng **`tháng 1/2015`** (16.963 đơn), **`tháng 2/2015`** (19.999 đơn), **`tháng 3/2015`** (17.944 đơn), **`tháng 4/2015`** (19.570 đơn), **`tháng 5/2015`** (20.830 đơn).
+
+➡️ **Số lượng đơn hàng có xu hướng tăng trưởng nhưng không ổn định và cao nhất tại `tháng 5/2015`.**
+
+---
+### ❓Q8: Có bao nhiêu khách hàng mua hàng trong từng tháng?
+Số lượng khách hàng mua **`tháng 1/2015`** (16.130), **`tháng 2/2015`** (19.217), **`tháng 3/2015`** (17.132), **`tháng 4/2015`** (18.828), **`tháng 5/2015`** (19.934).
+
+➡️ **Số lượng khách hàng có xu hướng tăng trưởng nhưng không ổn định và cao nhất tại `tháng 5/2015`.**
+
+---
+### ❓Q9: Top 3 mẫu điện thoại mang lại doanh thu cao nhất của từng tháng?
+**`Samsung`** xuất hiện trong **top 3 doanh thu ở cả 5 tháng**. Cụ thể, các mẫu thuộc dòng *Galaxy Note II* nằm ở vị trí doanh thu **top 1** trong hai tháng đầu năm **tháng 1–2** và tiếp tục giữ mặt trong **top 3** ở các **tháng 3–5** với các mẫu *Galaxy khác*.
+
+**`Nokia`** xuất hiện trong **Top 3** doanh thu với **dòng Lumia ở cả 5 tháng**.
+
+➡️ **`Samsung` và `Nokia` đều duy trì doanh thu cao và hiện diện ổn định trong suốt 5 tháng vì vậy cần có lượng hàng tồn kho ổn định cho các dòng sản phẩm của hãng.**
+
+Trong **top 3** mẫu điện thoại bán chạy nhất có **màu sắc chủ đạo** là **`tháng 1/2015`** (1 trắng, 1 đen, 1 xám), **`tháng 2/2015`** (1 trắng, 1 đen, 1 xám), **`tháng 3/2015`** (2 trắng, 1 đen), **`tháng 4/2015`** (2 đen, 1 trắng), **`tháng 5/2015`** (2 trắng, 1 đen)
+
+➡️ **Các dòng điện thoại trong top 3 đều thuộc các gam màu trung tính trắng, đen, xám.**
+
+---
+### ❓Q10: Hãng điện thoại được mua trả góp nhiều nhất?
+Trong các hãng điện thoại,**`Apple`** có tỷ lệ trả góp **nhiều nhất** (12,81%), xếp **thứ 2** là  **`Sony`** (12,62%) và **thứ ba** là **`HTC`** (10,81%).
+
+➡️ **Hãng `Apple` được mua trả góp nhiều nhất.**
+
+---
